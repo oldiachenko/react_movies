@@ -1,7 +1,14 @@
 import logo from './logo.svg';
 import './App.css';
+import {moviesService} from "./services";
+import React from "react";
+
+
 
 function App() {
+  React.useEffect(() => {
+    moviesService.getMovies().then(console.log)
+  })
   return (
     <div className="App">
       <header className="App-header">
