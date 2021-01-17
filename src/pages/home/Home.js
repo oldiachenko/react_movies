@@ -1,19 +1,25 @@
 import React from "react";
-import {FilmList} from "../../components";
+import {FilmList, PaginationWrapper} from "../../components";
 import {genresService, moviesService} from "../../services";
 import {useEffect, useState} from "react";
 import styles from './Home.module.css'
 import {useHistory} from "react-router-dom";
 
-export const Home = () => {
-const history = useHistory()
-  const [moviesList, setMoviesList] = useState([])
-  const [isLoading, setIsLoading] = useState(null)
 
-  const fetchMovies = async () => {
+
+export const Home = () => {
+  const history = useHistory()
+  const [moviesList, setMoviesList] = useState([])
+  const [genresList, setGenresList] = useState([])
+  const [isLoading, setIsLoading] = useState(null)
+  const [movieData, setMovieData] = useState(null)
+
+  const fetchMovies = async (params) => {
     try {
 
-      const {results} = await moviesService.getMovies()
+      const {results, page, total_pages, total_results} = await moviesService.getMovies(params)
+      setMovieData({page, total_pages, total_results})
+
       return results
     } catch (e) {
       console.error(e)
@@ -31,11 +37,11 @@ const history = useHistory()
     }
   }
 
-  const fetchMoviesData = async () => {
-    const requests = [fetchMovies(), fetchGenres()]
+  const fetchMoviesData = async (movieParams) => {
+    const requests = genresList.length ? [fetchMovies(movieParams)] : [fetchMovies(movieParams), fetchGenres()]
     try {
       setIsLoading(true)
-      const [movies, genres] = await Promise.all(requests)
+      const [movies, genres = genresList] = await Promise.all(requests)
 
       const mergedWithGenresMovies = movies.map((movie) => {
         const {genre_ids} = movie;
@@ -47,6 +53,7 @@ const history = useHistory()
       })
 
       setMoviesList(mergedWithGenresMovies)
+      setGenresList(genres)
 
     } catch (e) {
       console.error(e)
@@ -68,15 +75,33 @@ const history = useHistory()
   }
 
   const onFilmClick = (film) => {
-history.push(`/movie/${film.id}`)
+    history.push(`/movie/${film.id}`)
+  }
+
+
+  const handlePageChange = (page) => {
+    fetchMoviesData({page})
   }
 
   return (
     <div>
-      {isLoading || isLoading === null ? renderLoadingIndicator() : (<FilmList
-        items={moviesList}
-        onFilmClick={onFilmClick}
-      />)}
+      {isLoading || isLoading === null ? renderLoadingIndicator() : (
+        <div>
+          <PaginationWrapper
+            currentPage={movieData.page}
+            totalPages={movieData.total_pages}
+            onPrevClick={handlePageChange}
+            onNextClick={handlePageChange}
+            handleLastPage={handlePageChange}
+            handleFirstPage={handlePageChange}
+          />
+          <FilmList
+            items={moviesList}
+            onFilmClick={onFilmClick}
+          />
+        </div>
+
+      )}
     </div>
 
   )
